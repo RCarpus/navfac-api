@@ -529,7 +529,7 @@ app.put('/users/:ID/projects/:ProjectName',
  * <pre><code>
  * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
  * </code></pre>
- * @returns Object with data for the project. Example:
+ * @returns {object} Object with data for the project. Example below.
  * <pre><code>
  * {
  *    "Meta": {
@@ -558,7 +558,8 @@ app.put('/users/:ID/projects/:ProjectName',
  *    "CreatedDate": "2022-02-07T18:46:20.036Z",
  *    "ModifedDate": "2022-02-07T19:18:48.365Z"
  * }
- * </code></pre> */
+ * </code></pre> 
+ * */
 app.get('/users/:ID/projects/:ProjectName',
   passport.authenticate('jwt', { session: false }), (req, res) => {
     const loggedInUser = req.user._id.toString();
@@ -574,6 +575,55 @@ app.get('/users/:ID/projects/:ProjectName',
         doc.LastActivityDate = new Date();
         doc.save();
         res.status(200).send(project);
+      })
+      .catch(error => {
+        console.error(error);
+        res.status(500).send('Error:' + error);
+      });
+  })
+
+/**
+ * @description Endpoint to get a list of project names for a user.
+ * @method GETProjectNames
+ * @param {string} endpoint /users/:ID/projects
+ * @param {object} headers Authorization headers.
+ * <pre><code>
+ * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
+ * </code></pre>
+ * @returns {Array.<object>} Array of objects containing project Name 
+ * and ModifiedDate fields. Example:
+ * <pre><code>
+ * [
+ *    {
+ *      "Name": "Project 1",
+ *      "ModifiedDate": "2022-02-07T19:43:10.362Z"
+ *    },
+ *    {
+ *      "Name": "Project 2",
+ *      "ModifiedDate": "2022-02-08T19:43:10.362Z"
+ *    }
+ * ]
+ * </code></pre>
+ */
+app.get('/users/:ID/projects',
+  passport.authenticate('jwt', { session: false }), (req, res) => {
+    const loggedInUser = req.user._id.toString();
+    const searchedUser = req.params.ID;
+    if (loggedInUser !== searchedUser) return res.status(401)
+      .send('Hey, how about you try accessing your own data?');
+
+    Users.findOne({ _id: req.params.ID })
+      .then((doc) => {
+        let projects = [];
+        doc.Projects.forEach(project => {
+          projects.push({
+            Name: project.Meta.Name,
+            ModifiedDate: project.ModifiedDate,
+          });
+        })
+        doc.LastActivityDate = new Date();
+        doc.save();
+        res.status(200).send(projects);
       })
       .catch(error => {
         console.error(error);
