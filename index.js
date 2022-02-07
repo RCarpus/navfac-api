@@ -518,3 +518,64 @@ app.put('/users/:ID/projects/:ProjectName',
         res.status(500).send('Error:' + error);
       });
   })
+
+/**
+ * @description Endpoint to get a project by name. Also updates the user's
+ * LastActivityDate.
+ * @method GETProject
+ * @param {string} endpoint /users/:ID/projects/:ProjectName
+ * @param {object} headers Authorization headers.
+ * <pre><code>
+ * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
+ * </code></pre>
+ * @returns Object with data for the project. Example:
+ * <pre><code>
+ * {
+ *    "Meta": {
+ *      "Name": "My Project",
+ *      "Client": "My dear sweet mother",
+ *      "Engineer": "RPC",
+ *      "Notes": "I hope she'll be proud of me."
+ *    },
+ *    "SoilProfile" : {
+ *      "GroundwaterDepth": 5,
+ *      "IgnoredDepth": 3,
+ *      "Increment": 0.5,
+ *      "LayerDepths": [5, 10, 50],
+ *      "LayerNames": ["L SP", "ST CL", "C SP"],
+ *      "LayerUnitWeights": [120, 125, 130],
+ *      "LayerPhiOrCs": ["PHI", "C", "PHI"],
+ *      "LayerPhiOrCValues": [28, 1500, 35]
+ *    },
+ *    "FoundationDetails": {
+ *      "PileType": "DRILLED-PILE",
+ *      "Material": "CONCRETE",
+ *      "FS": 3,
+ *      "Widths": [[2], [3], [4.5]],
+ *      "BearingDepths": [10, 20, 30]
+ *    },
+ *    "CreatedDate": "2022-02-07T18:46:20.036Z",
+ *    "ModifedDate": "2022-02-07T19:18:48.365Z"
+ * }
+ * </code></pre> */
+app.get('/users/:ID/projects/:ProjectName',
+  passport.authenticate('jwt', { session: false }), (req, res) => {
+    const loggedInUser = req.user._id.toString();
+    const searchedUser = req.params.ID;
+    if (loggedInUser !== searchedUser) return res.status(401)
+      .send('Hey, how about you try accessing your own data?');
+
+    Users.findOne({ _id: req.params.ID })
+      .then((doc) => {
+        let project = doc.Projects.find(project =>
+          project.Meta.Name === req.params.ProjectName
+        );
+        doc.LastActivityDate = new Date();
+        doc.save();
+        res.status(200).send(project);
+      })
+      .catch(error => {
+        console.error(error);
+        res.status(500).send('Error:' + error);
+      });
+  })
