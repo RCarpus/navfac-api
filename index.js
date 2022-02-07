@@ -166,7 +166,7 @@ app.post('/users/register',
  */
 app.delete('/users/:ID',
   passport.authenticate('jwt', { session: false }), (req, res) => {
-    const loggedInUser = req.user.ID.toString();
+    const loggedInUser = req.user._id.toString();
     const searchedUser = req.params.ID;
     if (loggedInUser !== searchedUser) return res.status(401)
       .send('Hey, how about you try accessing your own data?');
@@ -234,8 +234,8 @@ app.get('/users/:ID',
 
 
 /**
- * @description Checks token to see if it's valid. Returns the string "valid" if the token 
- * is valid.
+ * @description Checks token to see if it's valid. 
+ * Returns the string "valid" if the token is valid.
  * @method GETCheckToken
  * @param {string} endpoint /checktoken
  * @param {object} headers Authorization headers.
