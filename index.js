@@ -339,3 +339,86 @@ app.put('/users/:ID', passport.authenticate('jwt', { session: false }),
         res.status(500).send('Error: ' + err);
       });
   });
+
+/**
+ * @description Endpoint to create a new project for a user. The SoilProfile 
+ * and FoundationDetails are initialized empty strings or empty arrays EXCEPT 
+ * Increment defaults to 0.5 and FS defaults to 3. 
+ * CreatedDate and ModifedDate are also set to date values of now.
+ * @method POSTNewProject
+ * @param {string} endpoint /users/:ID/projects
+ * @param {object} headers Authorization headers.
+ * <pre><code>
+ * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
+ * </code></pre>
+ * @param {object} body Request body. Name is required, other fields optional.
+ * <pre><code>
+ * {
+ *    "Name": "My Project",
+ *    "Client": "Primer Solar",
+ *    "Engineer": "RPC",
+ *    "Notes": "I hope my boss loves my new design!"
+ * }
+ * </code></pre>
+ * @returns {string} "Successfully created new project."
+ */
+app.post('/users/:ID/projects',
+  passport.authenticate('jwt', { session: false }),
+  [
+    check('Name', 'Name must be alphanumeric')
+      .isAlphanumeric('en-US', { ignore: '/s' }),
+    check('Name', 'Name cannot be blank')
+      .isLength({ min: 1 })
+  ], (req, res) => {
+    // If project name isn't provided, send an error
+    let errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    const loggedInUser = req.user._id.toString();
+    const searchedUser = req.params.ID;
+    if (loggedInUser !== searchedUser) return res.status(401)
+      .send('Hey, how about you try accessing your own data?');
+
+    const newProject = {
+      CreatedDate: new Date(),
+      ModifiedDate: new Date(),
+      Meta: {
+        Name: req.body.Name,
+        Client: req.body.Client || '',
+        Engineer: req.body.Engineer || '',
+        Notes: req.body.Notes || '',
+      },
+      SoilProfile: {
+        GroundwaterDepth: null,
+        IgnoredDepth: null,
+        Increment: 0.5,
+        LayerDepths: [],
+        LayerNames: [],
+        LayerUnitWeights: [],
+        LayerPhiOrCs: [],
+        LayerPhiOrCValues: [],
+      },
+      FoundationDetails: {
+        PileType: null,
+        Material: null,
+        FS: 3,
+        Widths: [],
+        BearingDepths: [],
+      }
+    }
+
+    Users.findOneAndUpdate({ _id: req.params.ID }, {
+      $push: { Projects: newProject },
+      $set: { LastActivityDate: new Date() }
+    },
+      { new: true })
+      .then((updatedUser) => {
+        res.send('Successfully created new project.');
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send('Error: ' + err);
+      });
+  });
