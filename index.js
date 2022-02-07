@@ -431,11 +431,10 @@ app.post('/users/:ID/projects',
 * <pre><code>
 * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
 * </code></pre>
-* @param {req.body} none - No request body is required.
 * @returns {string} - "ProjectName deleted."
 */
 app.delete('/users/:ID/projects/:ProjectName',
-  passport.authenticate('jwt', { session: false }), async (req, res) => {
+  passport.authenticate('jwt', { session: false }), (req, res) => {
     const loggedInUser = req.user._id.toString();
     const searchedUser = req.params.ID;
     if (loggedInUser !== searchedUser) return res.status(401)
@@ -447,6 +446,72 @@ app.delete('/users/:ID/projects/:ProjectName',
           project.Meta.Name !== req.params.ProjectName);
         doc.save();
         res.status(200).send(`${req.params.ProjectName} deleted.`);
+      })
+      .catch(error => {
+        console.error(error);
+        res.status(500).send('Error:' + error);
+      });
+  })
+
+
+/**
+ * @description Endpoint to save an existing project.
+ * @method PUTSaveProject
+ * @param {string} endpoint /users/:ID/projects/:ProjectName
+ * @param {object} headers Authorization headers.
+ * <pre><code>
+ * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
+ * </code></pre>
+ * @param {object} body Resopnse Body must be a correctly-formatted 
+ * Project object following the data model. CreatedDate and ModifiedDate 
+ * do not need to be included. Example below:
+ * <pre><code>
+ * {
+ *    "Meta": {
+ *      "Name": "My Project",
+ *      "Client": "My dear sweet mother",
+ *      "Engineer": "RPC",
+ *      "Notes": "I hope she'll be proud of me."
+ *    },
+ *    "SoilProfile" : {
+ *      "GroundwaterDepth": 5,
+ *      "IgnoredDepth": 3,
+ *      "Increment": 0.5,
+ *      "LayerDepths": [5, 10, 50],
+ *      "LayerNames": ["L SP", "ST CL", "C SP"],
+ *      "LayerUnitWeights": [120, 125, 130],
+ *      "LayerPhiOrCs": ["PHI", "C", "PHI"],
+ *      "LayerPhiOrCValues": [28, 1500, 35]
+ *    },
+ *    "FoundationDetails": {
+ *      "PileType": "DRILLED-PILE",
+ *      "Material": "CONCRETE",
+ *      "FS": 3,
+ *      "Widths": [[2], [3], [4.5]],
+ *      "BearingDepths": [10, 20, 30]
+ *    }
+ * }
+ * </code></pre>
+ * @returns {string} "ProjectName Saved."
+ */
+app.put('/users/:ID/projects/:ProjectName',
+  passport.authenticate('jwt', { session: false }), (req, res) => {
+    const loggedInUser = req.user._id.toString();
+    const searchedUser = req.params.ID;
+    if (loggedInUser !== searchedUser) return res.status(401)
+      .send('Hey, how about you try accessing your own data?');
+
+    Users.findOne({ _id: req.params.ID })
+      .then((doc) => {
+        let index = doc.Projects.findIndex(project =>
+          project.Meta.Name === req.params.ProjectName
+        );
+        let project = req.body;
+        project.CreatedDate = doc.Projects[index].CreatedDate;
+        project.ModifiedDate = new Date();
+        doc.Projects[index] = project;
+        doc.save();
+        res.status(200).send(`${req.params.ProjectName} saved.`);
       })
       .catch(error => {
         console.error(error);
