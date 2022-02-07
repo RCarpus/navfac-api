@@ -3,6 +3,9 @@
  `{http method} + {functionality}`  
  For example, the endpoint for user registration is named `POSTRegisterUser`.
 
+## Acessing the API
+The API is hosted with Heroku with the following root url.  
+### `https://navfac-api.herokuapp.com/`
 ## Backend Tech
 This API is built with an Express.js server. Passwords are hashed before storing with the `bcript` library. JSON web tokens are utilized for persistent login sessions. A full list of API dependencies is listed in the snippet below taken from `package.json`:
 ```
