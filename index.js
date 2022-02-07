@@ -156,13 +156,13 @@ app.post('/users/register',
  * Requires valid JWT, and the email encoded in the JWT must match the email 
  * for the account to be deleted.
  * @method DELETEUser
- * @param {string} endpoint - /users/:Email
- *  * @param {object} headers Authorization headers.
+ * @param {string} endpoint - /users/:ID
+ * @param {object} headers Authorization headers.
  * <pre><code>
  * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
  * </code></pre>
  * @param {req.body} none - No request body is required.
- * @returns {string} - "<:Email> was deleted".
+ * @returns {string} - "<:ID> was ID".
  */
 app.delete('/users/:ID',
   passport.authenticate('jwt', { session: false }), (req, res) => {
@@ -422,3 +422,34 @@ app.post('/users/:ID/projects',
         res.status(500).send('Error: ' + err);
       });
   });
+
+/**
+* @description Endpoint to delete a project. 
+* @method DELETEProject
+* @param {string} endpoint - /users/:ID/projects/:ProjectName
+* @param {object} headers Authorization headers.
+* <pre><code>
+* { "Authorization": "Bearer asl;djfoawiefalsdfla"}
+* </code></pre>
+* @param {req.body} none - No request body is required.
+* @returns {string} - "ProjectName deleted."
+*/
+app.delete('/users/:ID/projects/:ProjectName',
+  passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const loggedInUser = req.user._id.toString();
+    const searchedUser = req.params.ID;
+    if (loggedInUser !== searchedUser) return res.status(401)
+      .send('Hey, how about you try accessing your own data?');
+
+    Users.findOne({ _id: req.params.ID })
+      .then((doc) => {
+        doc.Projects = doc.Projects.filter(project =>
+          project.Meta.Name !== req.params.ProjectName);
+        doc.save();
+        res.status(200).send(`${req.params.ProjectName} deleted.`);
+      })
+      .catch(error => {
+        console.error(error);
+        res.status(500).send('Error:' + error);
+      });
+  })
