@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "docs": "jsdoc index.js auth.js models.js passport.js -R README.md"
+    "docs": "jsdoc index.js auth.js models.js passport.js -R README.md",
+    "start": "node index.js"
   },
   "author": "Ryan Carpus",
   "license": "ISC",
