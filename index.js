@@ -157,23 +157,27 @@ app.post('/users/register',
  * for the account to be deleted.
  * @method DELETEUser
  * @param {string} endpoint - /users/:Email
+ *  * @param {object} headers Authorization headers.
+ * <pre><code>
+ * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
+ * </code></pre>
  * @param {req.body} none - No request body is required.
  * @returns {string} - "<:Email> was deleted".
  */
-app.delete('/users/:Username',
+app.delete('/users/:ID',
   passport.authenticate('jwt', { session: false }), (req, res) => {
-    const loggedInUser = req.user.Email;
-    const searchedUser = req.params.Email;
+    const loggedInUser = req.user.ID.toString();
+    const searchedUser = req.params.ID;
     if (loggedInUser !== searchedUser) return res.status(401)
       .send('Hey, how about you try accessing your own data?');
 
 
-    Users.findOneAndRemove({ Email: req.params.Username })
+    Users.findOneAndRemove({ _id: req.params.ID })
       .then((user) => {
         if (!user) {
-          res.status(400).send(req.params.Username + ' was not found');
+          res.status(400).send(req.params.ID + ' was not found');
         } else {
-          res.status(200).send(req.params.Username + ' was deleted');
+          res.status(200).send(req.params.ID + ' was deleted');
         }
       })
       .catch((err) => {
@@ -189,7 +193,11 @@ app.delete('/users/:Username',
  * for the account to be deleted.
  * @method GETFullUserData
  * @param {string} endpoint - /users/:ID
- * @param {null} body No requet body required.
+ * @param {object} headers Authorization headers.
+ * <pre><code>
+ * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
+ * </code></pre>
+ * @param {null} body No requset body required.
  * @returns {object} - JSON object containing all data for the user. 
  * <pre><code>
  * {
@@ -197,11 +205,11 @@ app.delete('/users/:Username',
  *    "LastName": "Doe",
  *    "Email": "johndo@gmail.com",
  *    "Company": "John Doe Consulting",
- *    "Password": "$2b$10$6NLh9uzJslpepm7EM29X1uX7NTeULei9tXxhACff4.RySY6vjYvZi",
+ *    "Password": "$2b$10$6NLh9uzJslpepm7EM2YvZi",
  *    "AccountCreatedDate": "2022-02-07T14:15:29.125Z",
  *    "AccountModifiedDate": "2022-02-07T14:15:29.125Z",
  *    "LastActivityDate": "2022-02-07T14:15:29.125Z",
- *    "Projects": {Array.<object>},
+ *    "Projects": [], // An array of Project Records
  *    "_id": "620129819a9731ce784dbcb2",
  *    "__v": 0
  * }
@@ -209,7 +217,8 @@ app.delete('/users/:Username',
  */
 app.get('/users/:ID',
   passport.authenticate('jwt', { session: false }), (req, res) => {
-    console.log(loggedInUser, searchedUser);
+    const loggedInUser = req.user._id.toString();
+    const searchedUser = req.params.ID;
     if (loggedInUser !== searchedUser) return res.status(401)
       .send('Hey, how about you try accessing your own data?');
 
@@ -225,14 +234,108 @@ app.get('/users/:ID',
 
 
 /**
- * Checks token to see if it's valid. Returns the string "valid" if the token 
+ * @description Checks token to see if it's valid. Returns the string "valid" if the token 
  * is valid.
  * @method GETCheckToken
  * @param {string} endpoint /checktoken
+ * @param {object} headers Authorization headers.
+ * <pre><code>
+ * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
+ * </code></pre>
  * @param {null} body No requet body required.
  * @returns {string} "valid"
  */
 app.get('/checktoken',
   passport.authenticate('jwt', { session: false }), (req, res) => {
     res.send('valid');
+  });
+
+/**
+ * @description Endpoint to modify basic user data for a user. Also updates 
+ * AccountModifiedDate and LastActivityDate to now.
+ * @method PUTUpdateUserData
+ * @param {string} endpoint /users/:ID
+ * @param {object} headers Authorization headers.
+ * <pre><code>
+ * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
+ * </code></pre>
+ * @param {object} body Request body with any of the following parameters, 
+ *  each of which is optional.
+ * <pre><code>
+ * {
+ *    "FirstName": "John",
+ *    "LastName": "Doe",
+ *    "Email": "johndo@gmail.com",
+ *    "Company": "John Doe Consulting",
+ *    "Password": "Asstrondgpaosdsword",
+ * }
+ * </code></pre>
+ * @returns {object} Response object with updated user data.
+ * <pre><code>
+ * {
+ *    "FirstName": "John",
+ *    "LastName": "Doe",
+ *    "Email": "johndo@gmail.com",
+ *    "Company": "John Doe Consulting",
+ * }
+ * </code></pre>
+ */
+app.put('/users/:ID', passport.authenticate('jwt', { session: false }),
+  [
+    // check for valid inputs using express-validator
+    check('FirstName', 'Error in FirstName')
+      .optional().isAlpha('en-US', { ignore: '\s' }),
+    check('LastName', 'Error in LastName')
+      .optional().isAlpha('en-US', { ignore: '\s' }),
+    check('Company', 'Error in Company')
+      .optional().isAlpha('en-US', { ignore: '\s' }),
+    check('Password', 'Password must be at least 8 characters')
+      .optional().isLength({ min: 8 }),
+    check('Email', 'Email does not appear to be valid')
+      .optional().isEmail()
+  ], (req, res) => {
+    const loggedInUser = req.user._id.toString();
+    const searchedUser = req.params.ID;
+    if (loggedInUser !== searchedUser) return res.status(401)
+      .send('Hey, how about you try accessing your own data?');
+
+
+    // send back list of errors if present, for parameters that were entered
+    let errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    let hashedPassword;
+    if (req.body.Password) {
+      hashedPassword = Users.hashPassword(req.body.Password);
+    }
+
+    Users.findOneAndUpdate({ _id: req.params.ID }, {
+      $set:
+      {
+        FirstName: req.body.FirstName,
+        LastName: req.body.LastName,
+        Company: req.body.Company,
+        Password: hashedPassword,
+        Email: req.body.Email,
+        AccountModifiedDate: new Date(),
+        LastActivityDate: new Date(),
+      }
+    },
+      { new: true })
+      .then((updatedUserData) => {
+        let updatedUser = {
+          FirstName: updatedUserData.FirstName,
+          LastName: updatedUserData.LastName,
+          Company: updatedUserData.Company,
+          Email: updatedUserData.Email,
+        }
+        res.status(201).json({ updatedUser });
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send('Error: ' + err);
+      });
   });
