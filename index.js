@@ -510,6 +510,7 @@ app.put('/users/:ID/projects/:ProjectName',
         project.CreatedDate = doc.Projects[index].CreatedDate;
         project.ModifiedDate = new Date();
         doc.Projects[index] = project;
+        doc.LastActivityDate = new Date();
         doc.save();
         res.status(200).send(`${req.params.ProjectName} saved.`);
       })
