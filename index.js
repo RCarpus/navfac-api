@@ -189,7 +189,7 @@ app.delete('/users/:Username',
  * for the account to be deleted.
  * @method GETFullUserData
  * @param {string} endpoint - /users/:ID
- * @param {req.body} none - No request body is required.
+ * @param {null} body No requet body required.
  * @returns {object} - JSON object containing all data for the user. 
  * <pre><code>
  * {
@@ -224,3 +224,15 @@ app.get('/users/:ID',
   });
 
 
+/**
+ * Checks token to see if it's valid. Returns the string "valid" if the token 
+ * is valid.
+ * @method GETCheckToken
+ * @param {string} endpoint /checktoken
+ * @param {null} body No requet body required.
+ * @returns {string} "valid"
+ */
+app.get('/checktoken',
+  passport.authenticate('jwt', { session: false }), (req, res) => {
+    res.send('valid');
+  });
