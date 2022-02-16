@@ -25,7 +25,7 @@ let generateJWTToken = (user) => {
 /**
  * @description Endpoint to login the user<br>
  * @method POSTLoginUser
- * @param {string} endpoint - /login?id=[ID]&Password=[Password]
+ * @param {string} endpoint - /login?Email=[ID]&Password=[Password]
  * @returns {object} - JSON object containing minimal user data and a new JWT. 
  * <pre><code>
  * {
