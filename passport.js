@@ -21,7 +21,8 @@ passport.use(new LocalStrategy({
   passwordField: 'Password'
 }, (email, password, callback) => {
   // Find the user in the database
-  Users.findOne({ Email: email }, (error, user) => {
+  let lowercaseEmail = email.toLowerCase();
+  Users.findOne({ Email: lowercaseEmail }, (error, user) => {
     if (error) {
       console.log(error);
       return callback(error);
@@ -40,7 +41,7 @@ passport.use(new LocalStrategy({
     }
 
     // Update the LastActivityDate for the user
-    Users.findOneAndUpdate({ Email: email }, {
+    Users.findOneAndUpdate({ Email: lowercaseEmail }, {
       $set: { LastActivityDate: new Date() }
     },
       { new: true })

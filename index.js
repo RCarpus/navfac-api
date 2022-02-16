@@ -106,7 +106,7 @@ app.post('/users/register',
     //check with express-validator
     check('FirstName', 'FirstName is required.').isAlpha('en-US', { ignore: '\s' }),
     check('LastName', 'LastName is required').isAlpha('en-US', { ignore: '\s' }),
-    check('Company', 'Company is required').isAlpha('en-US', { ignore: '\s' }),
+    check('Company', 'Company is required').isAlphanumeric('en-US', { ignore: '\s' }),
     check('Password', 'Password must be at least 8 characters').isLength({ min: 8 }),
     check('Email', 'Email does not appear to be valid').isEmail()
   ],
@@ -118,9 +118,12 @@ app.post('/users/register',
     }
 
     /* If there were no errors in the POST format, attempt to register the user */
+    // Start by hashing the password
     let hashedPassword = Users.hashPassword(req.body.Password);
+    // We want email to be case insensitive
+    let lowercaseEmail = req.body.Email.toLowerCase();
     /* If there is already a user with that email, do not register */
-    Users.findOne({ Email: req.body.Email })
+    Users.findOne({ Email: lowercaseEmail })
       .then((user) => {
         if (user) {
           return res.status(400).send(req.body.Email +
@@ -129,7 +132,7 @@ app.post('/users/register',
           Users.create({
             FirstName: req.body.FirstName,
             LastName: req.body.LastName,
-            Email: req.body.Email,
+            Email: lowercaseEmail,
             Company: req.body.Company,
             Password: hashedPassword,
             AccountCreatedDate: new Date(),
@@ -273,10 +276,12 @@ app.get('/checktoken',
  * @returns {object} Response object with updated user data.
  * <pre><code>
  * {
- *    "FirstName": "John",
- *    "LastName": "Doe",
- *    "Email": "johndo@gmail.com",
- *    "Company": "John Doe Consulting",
+ *    "updatedUser": {
+ *      "FirstName": "John",
+ *      "LastName": "Doe",
+ *      "Email": "johndo@gmail.com",
+ *      "Company": "John Doe Consulting",
+ *    }
  * }
  * </code></pre>
  */
@@ -288,7 +293,7 @@ app.put('/users/:ID', passport.authenticate('jwt', { session: false }),
     check('LastName', 'Error in LastName')
       .optional().isAlpha('en-US', { ignore: '\s' }),
     check('Company', 'Error in Company')
-      .optional().isAlpha('en-US', { ignore: '\s' }),
+      .optional().isAlphanumeric('en-US', { ignore: '\s' }),
     check('Password', 'Password must be at least 8 characters')
       .optional().isLength({ min: 8 }),
     check('Email', 'Email does not appear to be valid')
@@ -312,6 +317,11 @@ app.put('/users/:ID', passport.authenticate('jwt', { session: false }),
       hashedPassword = Users.hashPassword(req.body.Password);
     }
 
+    let lowercaseEmail;
+    if (req.body.Email) {
+      lowercaseEmail = req.body.Email.toLowerCase();
+    }
+
     Users.findOneAndUpdate({ _id: req.params.ID }, {
       $set:
       {
@@ -319,7 +329,7 @@ app.put('/users/:ID', passport.authenticate('jwt', { session: false }),
         LastName: req.body.LastName,
         Company: req.body.Company,
         Password: hashedPassword,
-        Email: req.body.Email,
+        Email: lowercaseEmail,
         AccountModifiedDate: new Date(),
         LastActivityDate: new Date(),
       }
@@ -431,7 +441,20 @@ app.post('/users/:ID/projects',
 * <pre><code>
 * { "Authorization": "Bearer asl;djfoawiefalsdfla"}
 * </code></pre>
-* @returns {string} - "ProjectName deleted."
+* @returns {Array.<object>} Array of objects containing project Name 
+* and ModifiedDate fields. Example:
+* <pre><code>
+* [
+*    {
+*      "Name": "Project 1",
+*      "ModifiedDate": "2022-02-07T19:43:10.362Z"
+*    },
+*    {
+*      "Name": "Project 2",
+*      "ModifiedDate": "2022-02-08T19:43:10.362Z"
+*    }
+* ]
+* </code></pre>
 */
 app.delete('/users/:ID/projects/:ProjectName',
   passport.authenticate('jwt', { session: false }), (req, res) => {
@@ -444,8 +467,16 @@ app.delete('/users/:ID/projects/:ProjectName',
       .then((doc) => {
         doc.Projects = doc.Projects.filter(project =>
           project.Meta.Name !== req.params.ProjectName);
+        let projects = [];
+        doc.Projects.forEach(project => {
+          projects.push({
+            Name: project.Meta.Name,
+            ModifiedDate: project.ModifiedDate,
+          });
+        })
+        doc.LastActivityDate = new Date();
         doc.save();
-        res.status(200).send(`${req.params.ProjectName} deleted.`);
+        res.status(200).send(projects);
       })
       .catch(error => {
         console.error(error);
