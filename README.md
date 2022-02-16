@@ -1,5 +1,5 @@
 # NAVFAC API
- This is the API used with the NAVFAC Deep Foundation Design Tool built by Ryan Carpus. The API performs CRUD operations for user accounts and project data. The documentation is hosted with GitHub pages [here](http://localhost:5500/out/). The documentation for each endpoint is listed in the sidebar with the following naming convention:  
+ This is the API used with the NAVFAC Deep Foundation Design Tool built by Ryan Carpus. The API performs CRUD operations for user accounts and project data. The documentation is hosted with GitHub pages [here](https://rcarpus.github.io/navfac-api/). The documentation for each endpoint is listed in the sidebar with the following naming convention:  
  `{http method} + {functionality}`  
  For example, the endpoint for user registration is named `POSTRegisterUser`.
 
